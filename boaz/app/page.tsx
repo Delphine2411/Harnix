@@ -5,6 +5,20 @@ import { authOptions } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/db";
 import DocumentCard from "@/src/components/payment/document-card";
 
+type DocumentCardData = {
+  id: string;
+  title: string;
+  description: string;
+  preview: string;
+  price: number;
+  currency: string;
+  coverImageUrl?: string;
+  author?: string;
+  category?: string;
+  viewCount: number;
+  purchaseCount: number;
+};
+
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
@@ -17,8 +31,7 @@ export default async function HomePage() {
     take: 1,
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const documentsForCards = documents.map((doc: any) => ({
+  const documentsForCards: DocumentCardData[] = documents.map((doc) => ({
     id: doc.id,
     title: doc.title,
     description: doc.description,
