@@ -1,9 +1,22 @@
 // lib/payment.ts
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-12-15.clover",
-});
+let stripeClient: Stripe | null = null;
+
+const getStripeClient = () => {
+  if (stripeClient) return stripeClient;
+
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error("STRIPE_SECRET_KEY est manquant");
+  }
+
+  stripeClient = new Stripe(secretKey, {
+    apiVersion: "2025-12-15.clover",
+  });
+
+  return stripeClient;
+};
 
 /**
  * Crée une session de paiement Stripe
@@ -15,6 +28,8 @@ export async function createStripeCheckoutSession(
   currency: string = "usd",
   metadata?: Record<string, string>
 ) {
+  const stripe = getStripeClient();
+
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     line_items: [
@@ -48,6 +63,7 @@ export async function createStripeCheckoutSession(
  * Vérifie le statut d'une session Stripe
  */
 export async function verifyStripeSession(sessionId: string) {
+  const stripe = getStripeClient();
   const session = await stripe.checkout.sessions.retrieve(sessionId);
   return {
     status: session.payment_status,
@@ -61,6 +77,7 @@ export async function verifyStripeSession(sessionId: string) {
  * Crée un remboursement Stripe
  */
 export async function createStripeRefund(paymentIntentId: string, reason?: string) {
+  const stripe = getStripeClient();
   const refund = await stripe.refunds.create({
     payment_intent: paymentIntentId,
     reason: reason as "duplicate" | "fraudulent" | "requested_by_customer" | undefined,
@@ -86,6 +103,12 @@ class FedapayClient {
         : "https://api.fedapay.com/v1";
   }
 
+  private ensureApiKey() {
+    if (!this.apiKey) {
+      throw new Error("FEDAPAY_SECRET_KEY est manquant");
+    }
+  }
+
   /**
    * Crée une transaction Fedapay
    */
@@ -95,6 +118,7 @@ class FedapayClient {
     description: string,
     metadata: Record<string, string>
   ) {
+    this.ensureApiKey();
     const response = await fetch(`${this.baseUrl}/transactions`, {
       method: "POST",
       headers: {
@@ -123,6 +147,7 @@ class FedapayClient {
    * Génère un token de paiement
    */
   async generateToken(transactionId: string) {
+    this.ensureApiKey();
     const response = await fetch(`${this.baseUrl}/transactions/${transactionId}/token`, {
       method: "POST",
       headers: {
@@ -142,6 +167,7 @@ class FedapayClient {
    * Vérifie le statut d'une transaction
    */
   async verifyTransaction(transactionId: string) {
+    this.ensureApiKey();
     const response = await fetch(`${this.baseUrl}/transactions/${transactionId}`, {
       headers: {
         "Authorization": `Bearer ${this.apiKey}`,
@@ -157,7 +183,6 @@ class FedapayClient {
 }
 
 export const fedapay = new FedapayClient({
-  apiKey: process.env.FEDAPAY_SECRET_KEY!,
+  apiKey: process.env.FEDAPAY_SECRET_KEY || "",
   environment: process.env.NODE_ENV === "production" ? "live" : "sandbox",
 });
-
