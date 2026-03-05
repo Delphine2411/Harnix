@@ -6,8 +6,58 @@ import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "./db";
 import bcrypt from "bcrypt";
 
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
+
+const credentialsProvider = CredentialsProvider({
+  name: "Credentials",
+  credentials: {
+    email: { label: "Email", type: "email" },
+    password: { label: "Password", type: "password" },
+  },
+  async authorize(credentials) {
+    if (!credentials?.email || !credentials?.password) {
+      throw new Error("Email et mot de passe requis");
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: credentials.email },
+    });
+
+    if (!user || !user.password) {
+      throw new Error("Utilisateur non trouvé");
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      credentials.password,
+      user.password
+    );
+
+    if (!isPasswordValid) {
+      throw new Error("Mot de passe incorrect");
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    };
+  },
+});
+
+const providers: NextAuthOptions["providers"] = [credentialsProvider];
+
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  providers.unshift(
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    })
+  );
+}
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as Adapter,
+  ...(hasDatabaseUrl ? { adapter: PrismaAdapter(prisma) as Adapter } : {}),
   session: {
     strategy: "jwt",
   },
@@ -16,48 +66,7 @@ export const authOptions: NextAuthOptions = {
     signOut: "/auth/signout",
     error: "/auth/error",
   },
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email et mot de passe requis");
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user || !user.password) {
-          throw new Error("Utilisateur non trouvé");
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          throw new Error("Mot de passe incorrect");
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
-      },
-    }),
-  ],
+  providers,
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (user) {

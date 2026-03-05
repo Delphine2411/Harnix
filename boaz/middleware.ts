@@ -1,8 +1,10 @@
 // middleware.ts (à la racine du projet)
 import { withAuth } from "next-auth/middleware";
+import { NextFetchEvent } from "next/server";
+import { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-export default withAuth(
+const authMiddleware = withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
@@ -25,6 +27,14 @@ export default withAuth(
     },
   }
 );
+
+export default function middleware(req: NextRequest, event: NextFetchEvent) {
+  if (!process.env.NEXTAUTH_SECRET) {
+    return NextResponse.next();
+  }
+
+  return authMiddleware(req as never, event);
+}
 
 export const config = {
   matcher: [

@@ -21,15 +21,29 @@ type DocumentCardData = {
 
 
 export default async function HomePage() {
-  const session = await getServerSession(authOptions);
-  const documents = await prisma.document.findMany({
-    where: {
-      deletedAt: null,
-      publishedAt: { not: null },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 1,
-  });
+  let session = null;
+  let documents: Awaited<ReturnType<typeof prisma.document.findMany>> = [];
+
+  try {
+    if (process.env.NEXTAUTH_SECRET) {
+      session = await getServerSession(authOptions);
+    }
+  } catch (error) {
+    console.error("Session indisponible:", error);
+  }
+
+  try {
+    documents = await prisma.document.findMany({
+      where: {
+        deletedAt: null,
+        publishedAt: { not: null },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 1,
+    });
+  } catch (error) {
+    console.error("Chargement des documents impossible:", error);
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const documentsForCards: DocumentCardData[] = (documents as any[]).map((doc) => ({
@@ -48,17 +62,21 @@ export default async function HomePage() {
 
   const userPurchases = new Map<string, string>();
   if (session?.user?.id) {
-    const purchases = await prisma.purchase.findMany({
-      where: { userId: session.user.id },
-      select: {
-        documentId: true,
-        purchaseToken: true,
-      },
-    });
+    try {
+      const purchases = await prisma.purchase.findMany({
+        where: { userId: session.user.id },
+        select: {
+          documentId: true,
+          purchaseToken: true,
+        },
+      });
 
-    purchases.forEach((purchase: { documentId: string; purchaseToken: string }) => {
-      userPurchases.set(purchase.documentId, purchase.purchaseToken);
-    });
+      purchases.forEach((purchase: { documentId: string; purchaseToken: string }) => {
+        userPurchases.set(purchase.documentId, purchase.purchaseToken);
+      });
+    } catch (error) {
+      console.error("Chargement des achats utilisateur impossible:", error);
+    }
   }
   return (
     <div className="min-h-screen bg-[#cfeafe] text-[#123742]">

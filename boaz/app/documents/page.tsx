@@ -24,7 +24,10 @@ export default async function DocumentsPage({
 }: {
     searchParams: { category?: string; search?: string };
 }) {
-    const session = await getServerSession(authOptions);
+    let session = null;
+    if (process.env.NEXTAUTH_SECRET) {
+        session = await getServerSession(authOptions);
+    }
 
     // Récupérer les documents
     const where: {
