@@ -50,7 +50,8 @@ export default async function DocumentsPage({
         },
     });
 
-    const documentsForCards = documents.map((doc) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const documentsForCards = documents.map((doc: any) => ({
         id: doc.id,
         title: doc.title,
         description: doc.description,

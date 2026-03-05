@@ -7,48 +7,49 @@ import DocumentCard from "@/src/components/payment/document-card";
 
 
 export default async function HomePage() {
-   const session = await getServerSession(authOptions);
-    const documents = await prisma.document.findMany({
-      where: {
-        deletedAt: null,
-        publishedAt: { not: null },
+  const session = await getServerSession(authOptions);
+  const documents = await prisma.document.findMany({
+    where: {
+      deletedAt: null,
+      publishedAt: { not: null },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 1,
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const documentsForCards = documents.map((doc: any) => ({
+    id: doc.id,
+    title: doc.title,
+    description: doc.description,
+    preview: doc.preview,
+    price: Number(doc.price),
+    currency: doc.currency,
+    coverImageUrl: doc.coverImageUrl ?? undefined,
+    author: doc.author ?? undefined,
+    category: doc.category ?? undefined,
+    viewCount: doc.viewCount,
+    purchaseCount: doc.purchaseCount,
+  }));
+
+  const userPurchases = new Map<string, string>();
+  if (session?.user?.id) {
+    const purchases = await prisma.purchase.findMany({
+      where: { userId: session.user.id },
+      select: {
+        documentId: true,
+        purchaseToken: true,
       },
-      orderBy: { createdAt: "desc" },
-      take: 1,
     });
-  
-    const documentsForCards = documents.map((doc) => ({
-      id: doc.id,
-      title: doc.title,
-      description: doc.description,
-      preview: doc.preview,
-      price: Number(doc.price),
-      currency: doc.currency,
-      coverImageUrl: doc.coverImageUrl ?? undefined,
-      author: doc.author ?? undefined,
-      category: doc.category ?? undefined,
-      viewCount: doc.viewCount,
-      purchaseCount: doc.purchaseCount,
-    }));
-  
-    const userPurchases = new Map<string, string>();
-    if (session?.user?.id) {
-      const purchases = await prisma.purchase.findMany({
-        where: { userId: session.user.id },
-        select: {
-          documentId: true,
-          purchaseToken: true,
-        },
-      });
-  
-      purchases.forEach((purchase) => {
-        userPurchases.set(purchase.documentId, purchase.purchaseToken);
-      });
-    }
+
+    purchases.forEach((purchase) => {
+      userPurchases.set(purchase.documentId, purchase.purchaseToken);
+    });
+  }
   return (
     <div className="min-h-screen bg-[#cfeafe] text-[#123742]">
       {/* Top nav */}
-     <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-200">
@@ -164,23 +165,23 @@ export default async function HomePage() {
         {/* Illustration */}
         <div className="mt-6 flex justify-center">
           <div className="w-full max-w-[680px] rounded-[18px] border-2 border-[#1a3f49] bg-[#eaf6ff] px-6 py-5 shadow-[0_10px_20px_rgba(15,47,58,0.12)]">
-            
-              {documentsForCards.length > 0 ? (
-                          <div className="grid md:grid-cols-1 lg:grid-cols-1 gap-6">
-                            {documentsForCards.map((doc) => (
-                              <DocumentCard
-                                key={doc.id}
-                                document={doc}
-                                hasPurchased={userPurchases.has(doc.id)}
-                                purchaseToken={userPurchases.get(doc.id)}
-                              />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-500">
-                            Aucun document publié pour le moment.
-                          </div>
-                        )}
+
+            {documentsForCards.length > 0 ? (
+              <div className="grid md:grid-cols-1 lg:grid-cols-1 gap-6">
+                {documentsForCards.map((doc) => (
+                  <DocumentCard
+                    key={doc.id}
+                    document={doc}
+                    hasPurchased={userPurchases.has(doc.id)}
+                    purchaseToken={userPurchases.get(doc.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-500">
+                Aucun document publié pour le moment.
+              </div>
+            )}
           </div>
         </div>
 
