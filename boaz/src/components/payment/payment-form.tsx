@@ -2,10 +2,9 @@
 "use client";
 
 import { useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface PaymentFormProps {
   documentId: string;
@@ -122,8 +121,8 @@ export default function PaymentForm({
               <div className="text-sm text-gray-500">Via Stripe (Visa, Mastercard)</div>
             </div>
             <div className="flex space-x-2">
-              <img src="/icons/visa.svg" alt="Visa" className="h-6" />
-              <img src="/icons/mastercard.svg" alt="Mastercard" className="h-6" />
+              <Image src="/icons/visa.svg" alt="Visa" width={36} height={24} className="h-6 w-auto" />
+              <Image src="/icons/mastercard.svg" alt="Mastercard" width={36} height={24} className="h-6 w-auto" />
             </div>
           </label>
 
@@ -142,7 +141,7 @@ export default function PaymentForm({
                 Via Fedapay (MTN, Moov, Orange)
               </div>
             </div>
-            <img src="/icons/fedapay.png" alt="Fedapay" className="h-6" />
+            <Image src="/icons/fedapay.png" alt="Fedapay" width={72} height={24} className="h-6 w-auto" />
           </label>
         </div>
       </div>

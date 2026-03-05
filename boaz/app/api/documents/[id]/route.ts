@@ -64,6 +64,7 @@ export async function GET(
     }
 
     // Ne pas exposer les informations sensibles
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { encryptionKey, checksum, ...safeDocument } = document;
 
     return NextResponse.json({

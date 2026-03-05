@@ -1,13 +1,13 @@
 // app/api/dashboard/stats/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/db";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }

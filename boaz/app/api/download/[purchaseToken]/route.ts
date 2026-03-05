@@ -131,7 +131,7 @@ export async function GET(
     });
 
     // Retourner le fichier
-    return new NextResponse(finalBuffer, {
+    return new NextResponse(finalBuffer as unknown as BodyInit, {
       headers: {
         "Content-Type": `application/${purchase.document.fileType}`,
         "Content-Disposition": `attachment; filename="${purchase.document.title}.${purchase.document.fileType}"`,

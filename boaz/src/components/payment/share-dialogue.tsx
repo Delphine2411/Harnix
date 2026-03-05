@@ -12,7 +12,6 @@ interface ShareDialogProps {
 
 export default function ShareDialog({
   documentId,
-  documentTitle,
   onClose,
 }: ShareDialogProps) {
   const [email, setEmail] = useState("");
@@ -23,7 +22,7 @@ export default function ShareDialog({
 
   const handleShare = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
       setError("");

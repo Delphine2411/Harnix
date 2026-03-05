@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/db";
 import { verifyStripeSession, fedapay } from "@/src/lib/payment";
-import { generateDocumentKey, encryptDocumentKey } from "@/src/lib/encryption";
 import { z } from "zod";
 
 const verifySchema = z.object({
@@ -24,6 +23,7 @@ export async function POST(req: NextRequest) {
     const { sessionId, transactionId, paymentMethod } = verifySchema.parse(body);
 
     let paymentStatus;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let metadata: any;
     let amount;
     let currency;

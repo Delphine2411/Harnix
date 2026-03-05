@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/src/lib/auth";
-import { prisma } from "@/src/lib/db";
 import { downloadFile } from "@/src/lib/storage";
 import path from "path";
 
@@ -31,7 +28,7 @@ export async function GET(
         else if (ext === ".png") contentType = "image/png";
         else if (ext === ".webp") contentType = "image/webp";
 
-        return new NextResponse(fileBuffer, {
+        return new NextResponse(fileBuffer as unknown as BodyInit, {
             headers: {
                 "Content-Type": contentType,
                 "Cache-Control": "public, max-age=31536000, immutable",

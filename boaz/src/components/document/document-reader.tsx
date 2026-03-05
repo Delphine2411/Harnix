@@ -41,6 +41,7 @@ export default function DocumentReader({ purchaseToken }: DocumentReaderProps) {
 
   useEffect(() => {
     loadDocument();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [purchaseToken]);
 
   useEffect(() => {

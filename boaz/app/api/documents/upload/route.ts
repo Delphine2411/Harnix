@@ -77,8 +77,7 @@ export async function POST(req: NextRequest) {
     // Upload vers S3
     const fileUrl = await uploadEncryptedFile(
       encryptedBuffer,
-      file.name,
-      file.type
+      file.name
     );
 
     // Chiffrer la clé du document avec la clé maître
@@ -91,8 +90,7 @@ export async function POST(req: NextRequest) {
       const coverBuffer = Buffer.from(await coverImage.arrayBuffer());
       coverImageUrl = await uploadEncryptedFile(
         coverBuffer,
-        coverImage.name,
-        coverImage.type
+        coverImage.name
       );
     }
 

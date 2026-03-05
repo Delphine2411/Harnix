@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   FileText,
   DollarSign,
@@ -234,9 +235,11 @@ export default function DashboardStats() {
                   className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   {doc.coverImageUrl && (
-                    <img
+                    <Image
                       src={doc.coverImageUrl}
                       alt={doc.title}
+                      width={64}
+                      height={80}
                       className="w-16 h-20 object-cover rounded mr-4"
                     />
                   )}

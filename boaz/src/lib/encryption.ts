@@ -34,12 +34,12 @@ export function decryptDocumentKey(encryptedKey: string): string {
 export function encryptFile(fileBuffer: Buffer, documentKey: string): Buffer {
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(ALGORITHM, Buffer.from(documentKey, "hex"), iv);
-  
+
   const encrypted = Buffer.concat([
     cipher.update(fileBuffer),
     cipher.final(),
   ]);
-  
+
   // Ajouter l'IV au début du fichier chiffré
   return Buffer.concat([iv, encrypted]);
 }
@@ -51,9 +51,9 @@ export function decryptFile(encryptedBuffer: Buffer, documentKey: string): Buffe
   // Extraire l'IV (16 premiers bytes)
   const iv = encryptedBuffer.subarray(0, 16);
   const encrypted = encryptedBuffer.subarray(16);
-  
+
   const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(documentKey, "hex"), iv);
-  
+
   return Buffer.concat([
     decipher.update(encrypted),
     decipher.final(),
@@ -85,20 +85,21 @@ export async function addWatermarkToPDF(
   purchaseToken: string
 ): Promise<Buffer> {
   const { PDFDocument } = await import("pdf-lib");
-  
+
   const pdfDoc = await PDFDocument.load(pdfBuffer);
-  
+
   // Ajouter dans les métadonnées
   pdfDoc.setTitle(pdfDoc.getTitle() || "Document");
   pdfDoc.setAuthor(`Licensed to: ${userEmail}`);
   pdfDoc.setSubject(`Purchase Token: ${purchaseToken}`);
   pdfDoc.setKeywords([userEmail, purchaseToken]);
-  
+
   // Optionnel: Ajouter du texte visible sur chaque page
   const pages = pdfDoc.getPages();
   const watermarkText = `Licensed to ${userEmail}`;
-  
+
   for (const page of pages) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { width, height } = page.getSize();
     page.drawText(watermarkText, {
       x: 10,
@@ -107,7 +108,7 @@ export async function addWatermarkToPDF(
       opacity: 0.3,
     });
   }
-  
+
   return Buffer.from(await pdfDoc.save());
 }
 
@@ -121,7 +122,7 @@ export function generateDownloadToken(purchaseToken: string): string {
     .createHmac("sha256", MASTER_KEY)
     .update(data)
     .digest("hex");
-  
+
   return Buffer.from(`${data}:${signature}`).toString("base64");
 }
 
@@ -137,26 +138,26 @@ export function verifyDownloadToken(
   try {
     const decoded = Buffer.from(token, "base64").toString("utf8");
     const [purchaseToken, timestamp, signature] = decoded.split(":");
-    
+
     // Vérifier la signature
     const data = `${purchaseToken}:${timestamp}`;
     const expectedSignature = crypto
       .createHmac("sha256", MASTER_KEY)
       .update(data)
       .digest("hex");
-    
+
     if (signature !== expectedSignature) {
       return { valid: false };
     }
-    
+
     // Vérifier l'expiration
     const tokenAge = Date.now() - parseInt(timestamp);
     if (tokenAge > maxAge) {
       return { valid: false };
     }
-    
+
     return { valid: true, purchaseToken };
-  } catch (error) {
+  } catch {
     return { valid: false };
   }
 }
@@ -172,7 +173,7 @@ export const clientEncryption = {
   encrypt: (data: string, key: string): string => {
     return CryptoJS.AES.encrypt(data, key).toString();
   },
-  
+
   /**
    * Déchiffre des données avec CryptoJS (côté client)
    */

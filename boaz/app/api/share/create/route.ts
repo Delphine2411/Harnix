@@ -15,7 +15,7 @@ const shareSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
@@ -108,10 +108,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Erreur création partage:", error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Données invalides", details: error.errors },
+        { error: "Données invalides", details: error.issues },
         { status: 400 }
       );
     }

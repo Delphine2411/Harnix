@@ -4,6 +4,7 @@ import { authOptions } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/db";
 import PaymentForm from "@/src/components/payment/payment-form";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 export default async function DocumentDetailPage({
@@ -50,11 +51,14 @@ export default async function DocumentDetailPage({
           <div className="md:col-span-2">
             <div className="bg-white rounded-lg shadow-md p-6">
               {document.coverImageUrl && (
-                <img
-                  src={document.coverImageUrl}
-                  alt={document.title}
-                  className="w-full h-64 object-cover rounded-lg mb-6"
-                />
+                <div className="relative w-full h-64 mb-6">
+                  <Image
+                    src={document.coverImageUrl}
+                    alt={document.title}
+                    fill
+                    className="object-cover rounded-lg"
+                  />
+                </div>
               )}
 
               <div className="mb-4">

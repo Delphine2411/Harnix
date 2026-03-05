@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { ShieldCheck, Rocket, Landmark, ArrowRight, Loader2 } from "lucide-react";
 
 export default function BecomeSellerPage() {
-    const { data: session, update } = useSession();
+    const { update } = useSession();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, FilePenLine, Trash2, Upload } from "lucide-react";
+import Image from "next/image";
 
 type Status = "draft" | "published";
 
@@ -137,9 +138,8 @@ export default function MyDocumentsPanel({
                   setStatus("draft");
                   router.replace("/dashboard/my-documents?status=draft");
                 }}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
-                  status === "draft" ? "bg-yellow-500 text-white" : "text-gray-600 hover:text-gray-900"
-                }`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${status === "draft" ? "bg-yellow-500 text-white" : "text-gray-600 hover:text-gray-900"
+                  }`}
               >
                 Brouillons
               </button>
@@ -149,9 +149,8 @@ export default function MyDocumentsPanel({
                   setStatus("published");
                   router.replace("/dashboard/my-documents?status=published");
                 }}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
-                  status === "published" ? "bg-green-600 text-white" : "text-gray-600 hover:text-gray-900"
-                }`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${status === "published" ? "bg-green-600 text-white" : "text-gray-600 hover:text-gray-900"
+                  }`}
               >
                 Publiés
               </button>
@@ -186,17 +185,16 @@ export default function MyDocumentsPanel({
             {documents.map((doc) => (
               <article key={doc.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 {doc.coverImageUrl && (
-                  <img src={doc.coverImageUrl} alt={doc.title} className="w-full h-40 object-cover" />
+                  <Image src={doc.coverImageUrl} alt={doc.title} width={400} height={160} className="w-full h-40 object-cover" />
                 )}
                 <div className="p-5 space-y-4">
                   <div className="flex items-center justify-between gap-3">
                     <h2 className="text-lg font-bold text-gray-900 line-clamp-2">{doc.title}</h2>
                     <span
-                      className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                        doc.isDraft
+                      className={`text-xs px-2.5 py-1 rounded-full font-semibold ${doc.isDraft
                           ? "bg-yellow-100 text-yellow-800"
                           : "bg-green-100 text-green-800"
-                      }`}
+                        }`}
                     >
                       {doc.isDraft ? "Brouillon" : "Publié"}
                     </span>

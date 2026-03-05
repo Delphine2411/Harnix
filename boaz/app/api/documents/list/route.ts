@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Construire les filtres
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
       deletedAt: null,
       publishedAt: { not: null },

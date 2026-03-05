@@ -4,10 +4,11 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 
-export default function SignInPage() {
+function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
@@ -40,7 +41,7 @@ export default function SignInPage() {
       // Rediriger vers la page demandée ou le dashboard
       router.push(callbackUrl);
       router.refresh();
-    } catch (err) {
+    } catch {
       setError("Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setLoading(false);
@@ -51,7 +52,7 @@ export default function SignInPage() {
     setLoading(true);
     try {
       await signIn("google", { callbackUrl });
-    } catch (err) {
+    } catch {
       setError("Erreur lors de la connexion avec Google");
       setLoading(false);
     }
@@ -236,6 +237,18 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 }
 

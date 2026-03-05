@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     // Générer un token de réinitialisation
     const resetToken = crypto.randomBytes(32).toString("hex");
-    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 heure
+    // const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 heure
 
     // Sauvegarder le token (vous devrez ajouter ces champs au modèle User)
     await prisma.user.update({

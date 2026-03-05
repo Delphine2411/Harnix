@@ -17,8 +17,7 @@ if (!existsSync(STORAGE_PATH)) {
  */
 export async function uploadEncryptedFile(
   fileBuffer: Buffer,
-  fileName: string,
-  contentType: string
+  fileName: string
 ): Promise<string> {
   const fileId = `${Date.now()}-${fileName}`;
   const filePath = path.join(STORAGE_PATH, fileId);
@@ -50,8 +49,7 @@ export async function downloadFile(fileIdentifier: string): Promise<Buffer> {
  * Génère une URL signée temporaire pour téléchargement (Simulé pour local)
  */
 export async function generatePresignedUrl(
-  fileIdentifier: string,
-  expiresIn: number = 3600
+  fileIdentifier: string
 ): Promise<string> {
   // Si c'est déjà une URL d'API, on la retourne telle quelle
   if (fileIdentifier.startsWith(API_PREFIX)) {

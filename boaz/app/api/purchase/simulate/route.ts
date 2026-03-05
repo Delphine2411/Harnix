@@ -87,10 +87,11 @@ export async function POST(req: NextRequest) {
         });
 
         return NextResponse.json({ success: true, message: "Achat simulé avec succès" });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Erreur simulation achat:", error);
+        const message = error instanceof Error ? error.message : "Erreur inconnue";
         return NextResponse.json(
-            { error: "Erreur lors de la simulation", message: error.message },
+            { error: "Erreur lors de la simulation", message },
             { status: 500 }
         );
     }

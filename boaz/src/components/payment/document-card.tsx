@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import ShareDialog from "./share-dialogue";
 
 interface DocumentCardProps {
@@ -36,9 +37,11 @@ export default function DocumentCard({
         {/* Image de couverture */}
         {document.coverImageUrl && (
           <div className="h-100 bg-gray-200 overflow-hidden">
-            <img
+            <Image
               src={document.coverImageUrl}
               alt={document.title}
+              width={400}
+              height={200}
               className="w-full h-full object-cover"
             />
           </div>

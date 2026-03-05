@@ -18,11 +18,12 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
 
-    const publishedFilter =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const publishedFilter: any =
       status === "draft"
         ? null
         : status === "published"
-          ? { not: null as const }
+          ? { not: null }
           : undefined;
 
     const documents = await prisma.document.findMany({

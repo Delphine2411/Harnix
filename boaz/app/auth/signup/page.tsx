@@ -5,7 +5,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, Mail, Lock, User, Briefcase } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -93,7 +93,7 @@ export default function SignUpPage() {
     setLoading(true);
     try {
       await signIn("google", { callbackUrl: "/dashboard" });
-    } catch (err) {
+    } catch {
       setError("Erreur lors de l'inscription avec Google");
       setLoading(false);
     }
@@ -173,11 +173,10 @@ export default function SignUpPage() {
               </label>
               <div className="grid grid-cols-1 gap-3">
                 <label
-                  className={`relative flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    formData.role === "user"
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-300 hover:border-gray-400"
-                  }`}
+                  className={`relative flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all ${formData.role === "user"
+                    ? "border-blue-600 bg-blue-50"
+                    : "border-gray-300 hover:border-gray-400"
+                    }`}
                 >
                   <input
                     type="radio"
@@ -195,7 +194,7 @@ export default function SignUpPage() {
                   </div>
                 </label>
 
-               {/* <label
+                {/* <label
                   className={`relative flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
                     formData.role === "seller"
                       ? "border-blue-600 bg-blue-50"
@@ -308,9 +307,9 @@ export default function SignUpPage() {
                 htmlFor="agree-terms"
                 className="ml-2 block text-sm text-gray-700"
               >
-                J'accepte les{" "}
+                J&apos;accepte les{" "}
                 <Link href="/terms" className="text-blue-600 hover:text-blue-700">
-                  conditions d'utilisation
+                  conditions d&apos;utilisation
                 </Link>{" "}
                 et la{" "}
                 <Link href="/privacy" className="text-blue-600 hover:text-blue-700">
@@ -337,7 +336,7 @@ export default function SignUpPage() {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">
-                  Ou s'inscrire avec
+                  Ou s&apos;inscrire avec
                 </span>
               </div>
             </div>
@@ -384,15 +383,6 @@ export default function SignUpPage() {
           </div>
         </div>
 
-        {/* Retour à l'accueil */}
-        <div className="mt-4 text-center">
-          <Link
-            href="/"
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
-            ← Retour à l'accueil
-          </Link>
-        </div>
       </div>
     </div>
   );

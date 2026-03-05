@@ -5,10 +5,10 @@ import { prisma } from "@/src/lib/db";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const shareToken = params.token;
+    const { token: shareToken } = await params;
 
     const shareAttempt = await prisma.shareAttempt.findUnique({
       where: { shareToken },
