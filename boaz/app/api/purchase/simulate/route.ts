@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Créer l'achat simulé
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]) => {
             // 1. Créer le record Purchase
             await tx.purchase.create({
                 data: {
