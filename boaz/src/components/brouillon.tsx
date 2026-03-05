@@ -15,7 +15,8 @@ export default async function HomePage() {
     take: 3,
   });
 
-  const documentsForCards = documents.map((doc) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const documentsForCards = (documents as any[]).map((doc) => ({
     id: doc.id,
     title: doc.title,
     description: doc.description,
@@ -39,7 +40,7 @@ export default async function HomePage() {
       },
     });
 
-    purchases.forEach((purchase) => {
+    purchases.forEach((purchase: { documentId: string; purchaseToken: string }) => {
       userPurchases.set(purchase.documentId, purchase.purchaseToken);
     });
   }
