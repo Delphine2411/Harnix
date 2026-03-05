@@ -56,7 +56,7 @@ export default async function HomePage() {
       },
     });
 
-    purchases.forEach((purchase) => {
+    purchases.forEach((purchase: { documentId: string; purchaseToken: string }) => {
       userPurchases.set(purchase.documentId, purchase.purchaseToken);
     });
   }
