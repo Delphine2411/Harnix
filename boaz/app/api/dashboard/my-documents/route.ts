@@ -49,8 +49,9 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return NextResponse.json({
-      documents: documents.map((doc) => ({
+      documents: documents.map((doc: any) => ({
         ...doc,
         price: Number(doc.price),
         isDraft: !doc.publishedAt,
