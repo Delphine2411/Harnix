@@ -1,5 +1,6 @@
 // app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/src/lib/db";
 import bcrypt from "bcrypt";
 import { z } from "zod";
@@ -52,12 +53,35 @@ export async function POST(req: NextRequest) {
             { message: "Compte créé avec succès", user },
             { status: 201 }
         );
-    } catch (error) {
+    } catch (error: unknown) {
         if (error instanceof z.ZodError) {
             return NextResponse.json(
                 { error: "Données invalides", details: error.issues },
                 { status: 400 }
             );
+        }
+
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === "P2002") {
+                return NextResponse.json(
+                    { error: "Cet email est déjà utilisé" },
+                    { status: 400 }
+                );
+            }
+
+            if (error.code === "P2021") {
+                return NextResponse.json(
+                    { error: "Base de données non initialisée (migration manquante)" },
+                    { status: 503 }
+                );
+            }
+
+            if (error.code === "P1001") {
+                return NextResponse.json(
+                    { error: "Base de données inaccessible" },
+                    { status: 503 }
+                );
+            }
         }
 
         console.error("Erreur lors de l'inscription:", error);
@@ -67,4 +91,3 @@ export async function POST(req: NextRequest) {
         );
     }
 }
-
