@@ -2,7 +2,7 @@
 // app/documents/page.tsx - Liste des documents
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/lib/auth";
-import { prisma } from "@/src/lib/db";
+import { hasDatabaseConfig, prisma } from "@/src/lib/db";
 import DocumentCard from "@/src/components/payment/document-card";
 
 type DocumentCardData = {
@@ -22,8 +22,9 @@ type DocumentCardData = {
 export default async function DocumentsPage({
     searchParams,
 }: {
-    searchParams: { category?: string; search?: string };
+    searchParams: Promise<{ category?: string; search?: string }>;
 }) {
+    const resolvedSearchParams = await searchParams;
     let session = null;
     if (process.env.NEXTAUTH_SECRET) {
         session = await getServerSession(authOptions);
@@ -43,29 +44,31 @@ export default async function DocumentsPage({
         publishedAt: { not: null },
     };
 
-    if (searchParams.category) {
-        where.category = searchParams.category;
+    if (resolvedSearchParams.category) {
+        where.category = resolvedSearchParams.category;
     }
 
-    if (searchParams.search) {
+    if (resolvedSearchParams.search) {
         where.OR = [
-            { title: { contains: searchParams.search, mode: "insensitive" } },
-            { description: { contains: searchParams.search, mode: "insensitive" } },
+            { title: { contains: resolvedSearchParams.search, mode: "insensitive" } },
+            { description: { contains: resolvedSearchParams.search, mode: "insensitive" } },
         ];
     }
 
-    const documents = await prisma.document.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-        take: 20,
-        include: {
-            seller: {
-                select: {
-                    name: true,
+    const documents = hasDatabaseConfig
+        ? await prisma.document.findMany({
+            where,
+            orderBy: { createdAt: "desc" },
+            take: 20,
+            include: {
+                seller: {
+                    select: {
+                        name: true,
+                    },
                 },
             },
-        },
-    });
+        })
+        : [];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const documentsForCards: DocumentCardData[] = (documents as any[]).map((doc) => ({
@@ -84,7 +87,7 @@ export default async function DocumentsPage({
 
     // Récupérer les achats de l'utilisateur si connecté
     const userPurchases = new Map();
-    if (session?.user) {
+    if (hasDatabaseConfig && session?.user) {
         const purchases = await prisma.purchase.findMany({
             where: { userId: session.user.id },
             select: {
@@ -125,8 +128,8 @@ export default async function DocumentsPage({
                             <a
                                 key={cat}
                                 href={cat === "Tous" ? "/documents" : `/documents?category=${cat}`}
-                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${(!searchParams.category && cat === "Tous") ||
-                                    searchParams.category === cat
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${(!resolvedSearchParams.category && cat === "Tous") ||
+                                    resolvedSearchParams.category === cat
                                     ? "bg-blue-600 text-white"
                                     : "bg-white text-gray-700 hover:bg-gray-100"
                                     }`}
@@ -141,7 +144,7 @@ export default async function DocumentsPage({
                         <input
                             type="search"
                             name="search"
-                            defaultValue={searchParams.search}
+                            defaultValue={resolvedSearchParams.search}
                             placeholder="Rechercher un document..."
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />

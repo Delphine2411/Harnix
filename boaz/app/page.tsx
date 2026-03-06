@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/lib/auth";
 //import Link from "next/link";
-import { prisma } from "@/src/lib/db";
+import { hasDatabaseConfig, prisma } from "@/src/lib/db";
 import DocumentCard from "@/src/components/payment/document-card";
 
 type DocumentCardData = {
@@ -32,17 +32,21 @@ export default async function HomePage() {
     console.error("Session indisponible:", error);
   }
 
-  try {
-    documents = await prisma.document.findMany({
-      where: {
-        deletedAt: null,
-        publishedAt: { not: null },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 1,
-    });
-  } catch (error) {
-    console.error("Chargement des documents impossible:", error);
+  if (hasDatabaseConfig) {
+    try {
+      documents = await prisma.document.findMany({
+        where: {
+          deletedAt: null,
+          publishedAt: { not: null },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      });
+    } catch (error) {
+      console.error("Chargement des documents impossible:", error);
+    }
+  } else {
+    console.error("Chargement des documents impossible: DATABASE_URL invalide ou absente.");
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -61,7 +65,7 @@ export default async function HomePage() {
   }));
 
   const userPurchases = new Map<string, string>();
-  if (session?.user?.id) {
+  if (hasDatabaseConfig && session?.user?.id) {
     try {
       const purchases = await prisma.purchase.findMany({
         where: { userId: session.user.id },
@@ -149,48 +153,26 @@ export default async function HomePage() {
             <path d="M12 62h32" />
           </g>
         </svg>
-        {/* Background clouds (below books) */}
-        <svg
-          viewBox="0 0 360 180"
-          className="pointer-events-none absolute left-0 top-[310px] hidden w-[360px] md:block"
-          aria-hidden="true"
-        >
-          <path
-            d="M120 70c22-14 48-16 72-8 12-18 36-28 58-18 10-12 26-18 44-14 22 6 36 26 36 48H120z"
-            fill="none"
-            stroke="#2a4d9b"
-            strokeWidth="3"
-          />
-        </svg>
-        <svg
-          viewBox="0 0 300 190"
-          className="pointer-events-none absolute right-0 top-[310px] hidden w-[300px] md:block"
-          aria-hidden="true"
-        >
-          <path
-            d="M20 90c20-12 44-14 66-8 10-14 30-22 48-14 12-14 32-18 50-12 22 10 36 30 32 52H20z"
-            fill="none"
-            stroke="#2a4d9b"
-            strokeWidth="3"
-          />
-        </svg>
+        
         <div className="text-center">
           <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-[#4a7681]">
             Professional, service, personal, touch
           </p>
           <h1 className="mt-4 text-4xl font-black leading-[1.05] text-[#123742] md:text-5xl">
-            Built by Pet People,
+          achetez vos documents
             <br />
-            Made for Peace of Mind
+            en toute securite
           </h1>
           <p className="mx-auto mt-3 max-w-[580px] text-[12px] leading-relaxed text-[#2f5560]">
-            Because your pets deserve more than care — they deserve understanding. This
-            is where pet lovers connect with expert guidance and real-time support.
+          La plateforme de référence pour commercialiser vos documents avec un contrôle total : chiffrement de bout en bout et watermarking dynamique.
           </p>
           <div className="mt-5 flex justify-center">
-            <button className="rounded-full bg-[#0f2f3a] px-5 py-2 text-[11px] font-semibold text-white">
-              Book appointment
-            </button>
+            <Link
+                           href="/documents"
+                           className="w-full sm:w-auto bg-blue-600 text-white px-10 py-5 rounded-2xl text-lg font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 scale-100 hover:scale-[1.02] active:scale-[0.98]"
+                         >
+                           Explorer la bibliothèque
+                         </Link>
           </div>
         </div>
 
@@ -219,8 +201,7 @@ export default async function HomePage() {
 
         {/* Sub copy */}
         <div className="mt-8 text-center text-[13px] font-semibold text-[#2d4d57]">
-          At Nachotopia, we treat your pets like family with expert care that&apos;s
-          safe, simple, and stress-free.
+        Sécurité maximale, Lecture hors ligne, Partage contrôlé
         </div>
 
         {/* Cards */}
@@ -228,40 +209,73 @@ export default async function HomePage() {
           <div className="relative rotate-[-6deg] rounded-[18px] bg-[#8e6bd0] p-4 shadow-[0_12px_18px_rgba(15,47,58,0.18)]">
             <div className="h-28 rounded-[14px] bg-white/70 p-3">
               <svg viewBox="0 0 120 80" className="h-full w-full">
-                <rect x="8" y="10" width="40" height="60" rx="6" fill="#f7f7f7" stroke="#0f2f3a" strokeWidth="2" />
-                <path d="M60 55c10-10 22-16 38-18" stroke="#0f2f3a" strokeWidth="3" fill="none" />
-                <circle cx="86" cy="30" r="8" fill="#f05a7e" />
-                <path d="M86 38v18" stroke="#0f2f3a" strokeWidth="3" />
+              <svg
+                  className="w-5 h-5 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+                
               </svg>
             </div>
             <p className="mt-3 text-center text-[11px] font-semibold text-white">
-              Certified veterinarians and groomers
+            Tous les documents sont chiffrés. Chaque achat génère une licence
+            unique avec watermarking automatique.
             </p>
           </div>
           <div className="relative rounded-[18px] bg-[#f2a64d] p-4 shadow-[0_12px_18px_rgba(15,47,58,0.18)]">
             <div className="h-28 rounded-[14px] bg-white/70 p-3">
               <svg viewBox="0 0 120 80" className="h-full w-full">
-                <circle cx="30" cy="30" r="12" fill="#f08ab5" />
-                <path d="M30 44c10 8 20 12 30 12" stroke="#0f2f3a" strokeWidth="3" fill="none" />
-                <rect x="60" y="18" width="40" height="44" rx="8" fill="#ffe1cc" stroke="#0f2f3a" strokeWidth="2" />
-                <path d="M68 28h24" stroke="#0f2f3a" strokeWidth="3" />
+
+                <svg
+                  className="w-4 h-4 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                  />
+                </svg>
               </svg>
             </div>
             <p className="mt-3 text-center text-[11px] font-semibold text-white">
-              Flexible bookings and home visits
+            Téléchargez vos documents et lisez-les même sans connexion grâce à
+            notre application PWA installable.
             </p>
           </div>
           <div className="relative rotate-[6deg] rounded-[18px] bg-[#e35b8e] p-4 shadow-[0_12px_18px_rgba(15,47,58,0.18)]">
             <div className="h-28 rounded-[14px] bg-white/70 p-3">
               <svg viewBox="0 0 120 80" className="h-full w-full">
-                <path d="M20 58c10-18 26-26 48-26 20 0 34 8 42 22" stroke="#0f2f3a" strokeWidth="3" fill="none" />
-                <circle cx="36" cy="32" r="10" fill="#9bd2f4" />
-                <circle cx="70" cy="26" r="10" fill="#ffd166" />
-                <rect x="72" y="36" width="30" height="26" rx="6" fill="#f05a7e" />
+
+                <svg
+                  className="w-6 h-6 text-purple-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                  />
+                </svg>
               </svg>
             </div>
             <p className="mt-3 text-center text-[11px] font-semibold text-white">
-              Manage by expert veterinarians
+            Partagez vos documents en toute sécurité. Le destinataire doit
+            acheter le document avant d&apos;y accéder.
             </p>
           </div>
         </div>

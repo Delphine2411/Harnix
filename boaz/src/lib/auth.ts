@@ -3,10 +3,8 @@ import type { Adapter } from "next-auth/adapters";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import { prisma } from "./db";
+import { hasDatabaseConfig, prisma } from "./db";
 import bcrypt from "bcrypt";
-
-const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 
 const credentialsProvider = CredentialsProvider({
   name: "Credentials",
@@ -57,7 +55,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 }
 
 export const authOptions: NextAuthOptions = {
-  ...(hasDatabaseUrl ? { adapter: PrismaAdapter(prisma) as Adapter } : {}),
+  ...(hasDatabaseConfig ? { adapter: PrismaAdapter(prisma) as Adapter } : {}),
   session: {
     strategy: "jwt",
   },
