@@ -156,7 +156,7 @@ export default async function HomePage() {
         
         <div className="text-center">
           <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-[#4a7681]">
-            Professional, service, personal, touch
+            Securite, service, professionnel, fiabilite
           </p>
           <h1 className="mt-4 text-4xl font-black leading-[1.05] text-[#123742] md:text-5xl">
           achetez vos documents
