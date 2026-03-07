@@ -103,6 +103,9 @@ export async function generatePresignedUrl(
   fileIdentifier: string
 ): Promise<string> {
   const fileId = getStorageIdentifier(fileIdentifier);
+  if (fileId.startsWith("http://") || fileId.startsWith("https://")) {
+    return fileId;
+  }
   return `${API_PREFIX}${encodeURIComponent(fileId)}`;
 }
 

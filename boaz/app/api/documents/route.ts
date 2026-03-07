@@ -11,7 +11,6 @@ import {
 } from "@/src/lib/encryption";
 import { uploadEncryptedFile } from "@/src/lib/storage";
 import { z } from "zod";
-import { deleteFile, downloadFile } from "@/src/lib/storage";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
@@ -28,34 +27,8 @@ const uploadSchema = z.object({
   isDraft: z.boolean().default(false),
 });
 
-const blobUploadSchema = uploadSchema.extend({
-  fileUrl: z.string().url("URL de fichier invalide"),
-  fileName: z.string().min(1, "Nom de fichier manquant"),
-  fileSize: z.number().min(1).max(MAX_FILE_SIZE),
-  fileType: z.string().min(1, "Type de fichier manquant"),
-  coverImageUrl: z.string().url("URL d'image invalide").optional(),
-});
-
 export async function POST(req: NextRequest) {
   try {
-    if (!process.env.ENCRYPTION_MASTER_KEY) {
-      return NextResponse.json(
-        { error: "Configuration serveur incomplète: ENCRYPTION_MASTER_KEY manquant" },
-        { status: 500 }
-      );
-    }
-
-    if (
-      process.env.NODE_ENV === "production" &&
-      !process.env.BLOB_READ_WRITE_TOKEN &&
-      !process.env.STORAGE_PATH
-    ) {
-      return NextResponse.json(
-        { error: "Configuration serveur incomplète: BLOB_READ_WRITE_TOKEN manquant" },
-        { status: 500 }
-      );
-    }
-
     const session = await getServerSession(authOptions);
 
     if (!session?.user) {
@@ -70,57 +43,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const contentType = req.headers.get("content-type") || "";
-    let metadata;
-    let fileBuffer: Buffer;
-    let originalFileName: string;
-    let originalFileSize: number;
-    let originalFileType: string;
-    let coverImageUrl: string | undefined;
-    let temporaryDocumentUrl: string | undefined;
+    const formData = await req.formData();
+    const file = formData.get("file") as File;
+    const metadataStr = formData.get("metadata") as string;
 
-    if (contentType.includes("application/json")) {
-      const body = await req.json();
-      const payload = blobUploadSchema.parse(body);
-
-      metadata = payload;
-      originalFileName = payload.fileName;
-      originalFileSize = payload.fileSize;
-      originalFileType = payload.fileType;
-      temporaryDocumentUrl = payload.fileUrl;
-      coverImageUrl = payload.coverImageUrl;
-      fileBuffer = await downloadFile(payload.fileUrl);
-    } else {
-      const formData = await req.formData();
-      const file = formData.get("file") as File;
-      const metadataStr = formData.get("metadata") as string;
-
-      if (!file) {
-        return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
-      }
-
-      if (file.size > MAX_FILE_SIZE) {
-        return NextResponse.json(
-          { error: "Le fichier est trop volumineux (max 50 MB)" },
-          { status: 400 }
-        );
-      }
-
-      metadata = uploadSchema.parse(JSON.parse(metadataStr));
-      originalFileName = file.name;
-      originalFileSize = file.size;
-      originalFileType = file.type;
-      fileBuffer = Buffer.from(await file.arrayBuffer());
-
-      const coverImage = formData.get("coverImage") as File;
-      if (coverImage) {
-        const coverBuffer = Buffer.from(await coverImage.arrayBuffer());
-        coverImageUrl = await uploadEncryptedFile(
-          coverBuffer,
-          coverImage.name
-        );
-      }
+    if (!file) {
+      return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
     }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "Le fichier est trop volumineux (max 50 MB)" },
+        { status: 400 }
+      );
+    }
+
+    // Valider les métadonnées
+    const metadata = uploadSchema.parse(JSON.parse(metadataStr));
+
+    // Lire le fichier
+    const arrayBuffer = await file.arrayBuffer();
+    const fileBuffer = Buffer.from(arrayBuffer);
 
     // Générer une clé de chiffrement unique pour ce document
     const documentKey = generateDocumentKey();
@@ -134,11 +77,22 @@ export async function POST(req: NextRequest) {
     // Upload vers S3
     const fileUrl = await uploadEncryptedFile(
       encryptedBuffer,
-      originalFileName
+      file.name
     );
 
     // Chiffrer la clé du document avec la clé maître
     const encryptedKey = encryptDocumentKey(documentKey);
+
+    // Upload de l'image de couverture si présente
+    let coverImageUrl;
+    const coverImage = formData.get("coverImage") as File;
+    if (coverImage) {
+      const coverBuffer = Buffer.from(await coverImage.arrayBuffer());
+      coverImageUrl = await uploadEncryptedFile(
+        coverBuffer,
+        coverImage.name
+      );
+    }
 
     // Créer le document en base de données
     const document = await prisma.document.create({
@@ -150,8 +104,8 @@ export async function POST(req: NextRequest) {
         currency: metadata.currency,
         fileUrl,
         coverImageUrl,
-        fileSize: originalFileSize,
-        fileType: originalFileType.split("/")[1] || "pdf",
+        fileSize: file.size,
+        fileType: file.type.split("/")[1] || "pdf",
         encryptionKey: encryptedKey,
         checksum,
         author: metadata.author,
@@ -162,10 +116,6 @@ export async function POST(req: NextRequest) {
         publishedAt: metadata.isDraft ? null : new Date(),
       },
     });
-
-    if (temporaryDocumentUrl) {
-      await deleteFile(temporaryDocumentUrl);
-    }
 
     return NextResponse.json({
       success: true,
@@ -201,7 +151,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        error: errorWithMeta.message || "Erreur lors de l'upload du document",
+        error: "Erreur lors de l'upload du document",
+        message: process.env.NODE_ENV === "development" ? errorWithMeta.message : undefined
       },
       { status: 500 }
     );

@@ -9,7 +9,14 @@ const withPWA = withPWAInit({
 } as unknown as NextConfig);
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**.public.blob.vercel-storage.com",
+      },
+    ],
+  },
   turbopack: {},
 };
 

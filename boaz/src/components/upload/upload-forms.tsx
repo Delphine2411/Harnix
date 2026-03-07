@@ -1,6 +1,7 @@
 // components/UploadForm.tsx
 "use client";
 
+import { upload } from "@vercel/blob/client";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookText, Coins, FileText, ImageIcon, Tags, Upload } from "lucide-react";
@@ -39,6 +40,18 @@ export default function UploadForm() {
   const [submitAction, setSubmitAction] = useState<"draft" | "publish">("publish");
   const [descriptionCount, setDescriptionCount] = useState(0);
   const [previewCount, setPreviewCount] = useState(0);
+
+  const uploadToBlob = async (selectedFile: File, folder: "tmp" | "covers") => {
+    return upload(`documents/${folder}/${selectedFile.name}`, selectedFile, {
+      access: "public",
+      handleUploadUrl: "/api/blob/upload",
+      contentType: selectedFile.type,
+      multipart: true,
+      onUploadProgress: ({ percentage }) => {
+        setProgress(Math.max(5, Math.min(95, percentage)));
+      },
+    });
+  };
 
   const categories = [
     "Éducation",
@@ -114,38 +127,57 @@ export default function UploadForm() {
     setProgress(0);
 
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("file", file);
-      
-      if (coverImage) {
-        formDataToSend.append("coverImage", coverImage);
-      }
-
-      // Préparer les métadonnées
       const metadata = {
         ...formData,
         tags: tagsList,
         isDraft: action === "draft",
       };
 
-      formDataToSend.append("metadata", JSON.stringify(metadata));
-
       // Simuler la progression
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 10, 90));
       }, 500);
 
-      const response = await fetch("/api/documents/upload", {
-        method: "POST",
-        body: formDataToSend,
-      });
+      let response: Response;
+      try {
+        const uploadedDocument = await uploadToBlob(file, "tmp");
+        const uploadedCover = coverImage ? await uploadToBlob(coverImage, "covers") : null;
+
+        response = await fetch("/api/documents/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...metadata,
+            fileUrl: uploadedDocument.url,
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+            coverImageUrl: uploadedCover?.url,
+          }),
+        });
+      } catch {
+        const formDataToSend = new FormData();
+        formDataToSend.append("file", file);
+        formDataToSend.append("metadata", JSON.stringify(metadata));
+
+        if (coverImage) {
+          formDataToSend.append("coverImage", coverImage);
+        }
+
+        response = await fetch("/api/documents/upload", {
+          method: "POST",
+          body: formDataToSend,
+        });
+      }
 
       clearInterval(progressInterval);
       setProgress(100);
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Erreur lors de l'upload");
+        throw new Error(errorData.error || errorData.message || "Erreur lors de l'upload");
       }
 
       const data = await response.json();
