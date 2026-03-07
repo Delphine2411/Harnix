@@ -55,23 +55,29 @@ export default async function DocumentsPage({
         ];
     }
 
-    const documents = hasDatabaseConfig
-        ? await prisma.document.findMany({
-            where,
-            orderBy: { createdAt: "desc" },
-            take: 20,
-            include: {
-                seller: {
-                    select: {
-                        name: true,
+    let documents: Awaited<ReturnType<typeof prisma.document.findMany>> = [];
+    if (hasDatabaseConfig) {
+        try {
+            documents = await prisma.document.findMany({
+                where,
+                orderBy: { createdAt: "desc" },
+                take: 20,
+                include: {
+                    seller: {
+                        select: {
+                            name: true,
+                        },
                     },
                 },
-            },
-        })
-        : [];
+            });
+        } catch (error) {
+            console.error("Chargement des documents impossible:", error);
+        }
+    } else {
+        console.error("Chargement des documents impossible: DATABASE_URL invalide ou absente.");
+    }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const documentsForCards: DocumentCardData[] = (documents as any[]).map((doc) => ({
+    const documentsForCards: DocumentCardData[] = documents.map((doc) => ({
         id: doc.id,
         title: doc.title,
         description: doc.description,
@@ -88,17 +94,21 @@ export default async function DocumentsPage({
     // Récupérer les achats de l'utilisateur si connecté
     const userPurchases = new Map();
     if (hasDatabaseConfig && session?.user) {
-        const purchases = await prisma.purchase.findMany({
-            where: { userId: session.user.id },
-            select: {
-                documentId: true,
-                purchaseToken: true,
-            },
-        });
+        try {
+            const purchases = await prisma.purchase.findMany({
+                where: { userId: session.user.id },
+                select: {
+                    documentId: true,
+                    purchaseToken: true,
+                },
+            });
 
-        purchases.forEach((p: { documentId: string; purchaseToken: string }) => {
-            userPurchases.set(p.documentId, p.purchaseToken);
-        });
+            purchases.forEach((p: { documentId: string; purchaseToken: string }) => {
+                userPurchases.set(p.documentId, p.purchaseToken);
+            });
+        } catch (error) {
+            console.error("Chargement des achats utilisateur impossible:", error);
+        }
     }
 
     const categories = [
