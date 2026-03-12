@@ -41,8 +41,19 @@ export default function UploadForm() {
   const [descriptionCount, setDescriptionCount] = useState(0);
   const [previewCount, setPreviewCount] = useState(0);
 
+  const slugify = (str: string) => {
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9.]/g, "-")
+      .replace(/-+/g, "-");
+  };
+
   const uploadToBlob = async (selectedFile: File, folder: "tmp" | "covers") => {
-    return upload(`documents/${folder}/${selectedFile.name}`, selectedFile, {
+    const sanitizedName = slugify(selectedFile.name);
+    return upload(`documents/${folder}/${sanitizedName}`, selectedFile, {
       access: "public",
       handleUploadUrl: "/api/blob/upload",
       contentType: selectedFile.type,
