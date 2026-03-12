@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({
-      documents: documents.map((doc) => ({
+      documents: documents.map((doc: any) => ({
         ...doc,
         price: Number(doc.price),
         isDraft: !doc.publishedAt,
