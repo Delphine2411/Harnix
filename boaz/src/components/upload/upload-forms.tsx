@@ -46,7 +46,6 @@ export default function UploadForm() {
       access: "public",
       handleUploadUrl: "/api/blob/upload",
       contentType: selectedFile.type,
-      multipart: true,
       onUploadProgress: ({ percentage }) => {
         setProgress(Math.max(5, Math.min(95, percentage)));
       },
@@ -139,7 +138,7 @@ export default function UploadForm() {
       }, 500);
 
       let response: Response;
-      const isDev = process.env.NODE_ENV === "development" || window.location.hostname === "localhost";
+      const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
       try {
         // En prod on utilise le client-side upload pour économiser la bande passante du serveur
