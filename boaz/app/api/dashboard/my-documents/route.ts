@@ -18,8 +18,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const publishedFilter: any =
+    const publishedFilter =
       status === "draft"
         ? null
         : status === "published"
@@ -49,9 +48,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return NextResponse.json({
-      documents: documents.map((doc: any) => ({
+      documents: documents.map((doc) => ({
         ...doc,
         price: Number(doc.price),
         isDraft: !doc.publishedAt,

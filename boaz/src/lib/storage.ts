@@ -13,8 +13,12 @@ const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
 const hasBlobConfig = Boolean(blobToken);
 
 // S'assurer que le dossier existe
-if (!hasBlobConfig && canUseLocalStorage && !existsSync(STORAGE_PATH)) {
-  mkdirSync(STORAGE_PATH, { recursive: true });
+if (canUseLocalStorage && !existsSync(STORAGE_PATH)) {
+  try {
+    mkdirSync(STORAGE_PATH, { recursive: true });
+  } catch (err) {
+    console.warn("Failed to create storage directory:", err);
+  }
 }
 
 function getStorageIdentifier(fileIdentifier: string): string {
@@ -41,6 +45,15 @@ export async function uploadEncryptedFile(
 ): Promise<string> {
   const fileId = buildStoredFileName(fileName);
 
+  // En développement, on privilégie le stockage local si STORAGE_PATH est défini
+  const isDev = process.env.NODE_ENV !== "production";
+
+  if (isDev && canUseLocalStorage) {
+    const filePath = path.join(STORAGE_PATH, fileId);
+    await fs.writeFile(filePath, fileBuffer);
+    return `${API_PREFIX}${encodeURIComponent(fileId)}`;
+  }
+
   if (hasBlobConfig) {
     const blob = await put(`documents/${fileId}`, fileBuffer, {
       access: "public",
@@ -60,7 +73,6 @@ export async function uploadEncryptedFile(
   }
 
   // On retourne l'URL de l'API qui permet de télécharger le fichier
-  // pour que le frontend puisse l'utiliser directement (notamment pour les images de couverture)
   return `${API_PREFIX}${encodeURIComponent(fileId)}`;
 }
 

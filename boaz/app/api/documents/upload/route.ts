@@ -37,6 +37,7 @@ const blobUploadSchema = uploadSchema.extend({
 });
 
 export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
   try {
     if (!process.env.ENCRYPTION_MASTER_KEY) {
       return NextResponse.json(
@@ -56,7 +57,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const session = await getServerSession(authOptions);
+    const masterKey = process.env.ENCRYPTION_MASTER_KEY;
+    if (!masterKey || masterKey === "générer-une-clé-ici" || masterKey.length < 32) {
+      return NextResponse.json(
+        {
+          error: "Configuration serveur incomplète",
+          message: "ENCRYPTION_MASTER_KEY est manquante ou invalide. Elle doit être une chaîne hexadécimale de 32 octets."
+        },
+        { status: 500 }
+      );
+    }
 
     if (!session?.user) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
@@ -164,7 +174,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (temporaryDocumentUrl) {
-      await deleteFile(temporaryDocumentUrl);
+      try {
+        await deleteFile(temporaryDocumentUrl);
+      } catch (cleanupError) {
+        console.warn("Échec du nettoyage du fichier temporaire:", cleanupError);
+      }
     }
 
     return NextResponse.json({

@@ -86,7 +86,7 @@ export default function UploadForm() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      
+
       // Vérifier le type de fichier
       const allowedTypes = ["application/pdf", "application/epub+zip"];
       if (!allowedTypes.includes(selectedFile.type)) {
@@ -116,7 +116,7 @@ export default function UploadForm() {
     const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     const action = (submitter?.value as "draft" | "publish" | undefined) ?? "publish";
     setSubmitAction(action);
-    
+
     if (!file) {
       setError("Veuillez sélectionner un fichier");
       return;
@@ -139,7 +139,15 @@ export default function UploadForm() {
       }, 500);
 
       let response: Response;
+      const isDev = process.env.NODE_ENV === "development" || window.location.hostname === "localhost";
+
       try {
+        // En prod on utilise le client-side upload pour économiser la bande passante du serveur
+        // Mais en local, cela cause des erreurs CORS avec Vercel Blob, donc on utilise le fallback direct
+        if (isDev) {
+          throw new Error("Local environment: skipping client-side blob upload");
+        }
+
         const uploadedDocument = await uploadToBlob(file, "tmp");
         const uploadedCover = coverImage ? await uploadToBlob(coverImage, "covers") : null;
 
@@ -157,7 +165,8 @@ export default function UploadForm() {
             coverImageUrl: uploadedCover?.url,
           }),
         });
-      } catch {
+      } catch (uploadError) {
+        console.log("Using direct fallback upload...", uploadError);
         const formDataToSend = new FormData();
         formDataToSend.append("file", file);
         formDataToSend.append("metadata", JSON.stringify(metadata));

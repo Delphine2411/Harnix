@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,15 +12,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -36,21 +33,20 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          String    @default("user") // "user", "seller", "admin"
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  accounts      Account[]
-  sessions      Session[]
-  documents     Document[]
-  purchases     Purchase[]
-  sharesSent    ShareAttempt[] @relation("ShareSender")
+  id             String         @id @default(cuid())
+  name           String?
+  email          String?        @unique
+  emailVerified  DateTime?
+  image          String?
+  password       String?
+  role           String         @default("user")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  accounts       Account[]
+  documents      Document[]
+  purchases      Purchase[]
+  sessions       Session[]
+  sharesSent     ShareAttempt[] @relation("ShareSender")
   sharesReceived ShareAttempt[] @relation("ShareReceiver")
 }
 
@@ -63,47 +59,33 @@ model VerificationToken {
 }
 
 model Document {
-  id              String   @id @default(cuid())
-  title           String
-  description     String   @db.Text
-  preview         String   @db.Text // Résumé visible avant achat
-  price           Decimal  @db.Decimal(10, 2)
-  currency        String   @default("XOF") // ou "USD", "EUR"
-  
-  // Fichiers
-  fileUrl         String   // URL du fichier chiffré dans S3
-  coverImageUrl   String?  // Image de couverture
-  fileSize        Int      // Taille en bytes
-  fileType        String   // "pdf", "epub", "docx"
-  
-  // Sécurité
-  encryptionKey   String   // Clé de chiffrement (elle-même chiffrée)
-  checksum        String   // Hash du fichier original
-  
-  // Métadonnées
-  author          String?
-  category        String?
-  tags            String[] // Array de tags
-  pageCount       Int?
-  language        String   @default("fr")
-  
-  // Stats
-  viewCount       Int      @default(0)
-  purchaseCount   Int      @default(0)
-  
-  // Relations
-  sellerId        String
-  seller          User     @relation(fields: [sellerId], references: [id])
-  purchases       Purchase[]
-  shareAttempts   ShareAttempt[]
-  
-  // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  publishedAt     DateTime?
-  
-  // Soft delete
-  deletedAt       DateTime?
+  id            String         @id @default(cuid())
+  title         String
+  description   String
+  preview       String
+  price         Decimal        @db.Decimal(10, 2)
+  currency      String         @default("XOF")
+  fileUrl       String
+  coverImageUrl String?
+  fileSize      Int
+  fileType      String
+  encryptionKey String
+  checksum      String
+  author        String?
+  category      String?
+  tags          String[]
+  pageCount     Int?
+  language      String         @default("fr")
+  viewCount     Int            @default(0)
+  purchaseCount Int            @default(0)
+  sellerId      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  publishedAt   DateTime?
+  deletedAt     DateTime?
+  seller        User           @relation(fields: [sellerId], references: [id])
+  purchases     Purchase[]
+  shareAttempts ShareAttempt[]
 
   @@index([sellerId])
   @@index([category])
@@ -111,104 +93,76 @@ model Document {
 }
 
 model Purchase {
-  id              String   @id @default(cuid())
-  
-  // Relations
-  userId          String
-  documentId      String
-  user            User     @relation(fields: [userId], references: [id])
-  document        Document @relation(fields: [documentId], references: [id])
-  
-  // Token unique pour cette licence
-  purchaseToken   String   @unique @default(cuid())
-  
-  // Paiement
-  amount          Decimal  @db.Decimal(10, 2)
-  currency        String
-  paymentMethod   String   // "stripe", "fedapay"
-  paymentId       String?  // ID de la transaction
-  paymentStatus   String   @default("pending") // "pending", "completed", "failed", "refunded"
-  
-  // Contrôle d'accès
-  maxDevices      Int      @default(3)
-  deviceIds       String[] // Liste des appareils autorisés
-  downloadCount   Int      @default(0)
-  maxDownloads    Int      @default(5)
-  
-  // Watermarking
-  watermark       String   // Email ou ID de l'utilisateur injecté dans le doc
-  
-  // Expiration (optionnel)
-  expiresAt       DateTime?
-  
-  // Provenance (si c'est un partage)
-  shareAttemptId  String?
-  shareAttempt    ShareAttempt? @relation(fields: [shareAttemptId], references: [id])
-  
-  // Timestamps
-  purchasedAt     DateTime @default(now())
-  lastAccessedAt  DateTime?
-  
-  @@unique([userId, documentId]) // Un utilisateur ne peut acheter qu'une fois
+  id             String        @id @default(cuid())
+  userId         String
+  documentId     String
+  purchaseToken  String        @unique @default(cuid())
+  amount         Decimal       @db.Decimal(10, 2)
+  currency       String
+  paymentMethod  String
+  paymentId      String?
+  paymentStatus  String        @default("pending")
+  maxDevices     Int           @default(3)
+  deviceIds      String[]
+  downloadCount  Int           @default(0)
+  maxDownloads   Int           @default(5)
+  watermark      String
+  expiresAt      DateTime?
+  shareAttemptId String?
+  purchasedAt    DateTime      @default(now())
+  lastAccessedAt DateTime?
+  document       Document      @relation(fields: [documentId], references: [id])
+  shareAttempt   ShareAttempt? @relation(fields: [shareAttemptId], references: [id])
+  user           User          @relation(fields: [userId], references: [id])
+
+  @@unique([userId, documentId])
   @@index([userId])
   @@index([documentId])
   @@index([purchaseToken])
 }
 
 model ShareAttempt {
-  id              String   @id @default(cuid())
-  
-  // Relations
-  fromUserId      String
-  toEmail         String
-  documentId      String
-  fromUser        User     @relation("ShareSender", fields: [fromUserId], references: [id])
-  toUser          User?    @relation("ShareReceiver", fields: [toUserId], references: [id])
-  toUserId        String?
-  document        Document @relation(fields: [documentId], references: [id])
-  
-  // Token de partage unique
-  shareToken      String   @unique @default(cuid())
-  
-  // Statut
-  status          String   @default("pending") // "pending", "purchased", "expired", "cancelled"
-  
-  // Message personnalisé
-  message         String?  @db.Text
-  
-  // Timestamps
-  createdAt       DateTime @default(now())
-  expiresAt       DateTime // Lien expire après X jours
-  completedAt     DateTime?
-  
-  // Relation avec l'achat résultant
-  purchases       Purchase[]
-  
+  id          String     @id @default(cuid())
+  fromUserId  String
+  toEmail     String
+  documentId  String
+  toUserId    String?
+  shareToken  String     @unique @default(cuid())
+  status      String     @default("pending")
+  message     String?
+  createdAt   DateTime   @default(now())
+  expiresAt   DateTime
+  completedAt DateTime?
+  purchases   Purchase[]
+  document    Document   @relation(fields: [documentId], references: [id])
+  fromUser    User       @relation("ShareSender", fields: [fromUserId], references: [id])
+  toUser      User?      @relation("ShareReceiver", fields: [toUserId], references: [id])
+
   @@index([fromUserId])
   @@index([toEmail])
   @@index([shareToken])
 }
 
 model DownloadLog {
-  id              String   @id @default(cuid())
-  purchaseToken   String
-  deviceId        String
-  deviceInfo      String?  @db.Text // User agent, OS, etc.
-  ipAddress       String?
-  downloadedAt    DateTime @default(now())
-  
+  id            String   @id @default(cuid())
+  purchaseToken String
+  deviceId      String
+  deviceInfo    String?
+  ipAddress     String?
+  downloadedAt  DateTime @default(now())
+
   @@index([purchaseToken])
 }
 
 model AccessLog {
-  id              String   @id @default(cuid())
-  purchaseToken   String
-  action          String   // "view", "download", "share_attempt"
-  deviceId        String?
-  ipAddress       String?
-  metadata        String?  @db.Text // JSON avec infos supplémentaires
-  timestamp       DateTime @default(now())
-  
+  id            String   @id @default(cuid())
+  purchaseToken String
+  action        String
+  deviceId      String?
+  ipAddress     String?
+  metadata      String?
+  timestamp     DateTime @default(now())
+
   @@index([purchaseToken])
   @@index([timestamp])
 }

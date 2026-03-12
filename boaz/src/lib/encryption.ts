@@ -2,7 +2,10 @@
 import CryptoJS from "crypto-js";
 import crypto from "crypto";
 
-const MASTER_KEY = process.env.ENCRYPTION_MASTER_KEY!;
+const MASTER_KEY = process.env.ENCRYPTION_MASTER_KEY || "";
+if (process.env.NODE_ENV === "production" && (!MASTER_KEY || MASTER_KEY.length < 32)) {
+  console.error("CRITICAL: ENCRYPTION_MASTER_KEY is not set or invalid in production!");
+}
 const ALGORITHM = "aes-256-cbc";
 
 /**
