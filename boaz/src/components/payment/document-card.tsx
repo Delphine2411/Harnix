@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ShareDialog from "./share-dialogue";
+import { resolveStaticAssetUrl } from "@/src/lib/utils";
 
 interface DocumentCardProps {
   document: {
@@ -30,15 +31,16 @@ export default function DocumentCard({
   purchaseToken,
 }: DocumentCardProps) {
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const displayCoverUrl = resolveStaticAssetUrl(document.coverImageUrl);
 
   return (
     <>
       <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
         {/* Image de couverture */}
-        {document.coverImageUrl && (
+        {displayCoverUrl && (
           <div className="h-100 bg-gray-200 overflow-hidden">
             <Image
-              src={document.coverImageUrl}
+              src={displayCoverUrl}
               alt={document.title}
               width={400}
               height={200}

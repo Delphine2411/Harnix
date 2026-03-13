@@ -48,8 +48,23 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    interface Document {
+      id: string;
+      title: string;
+      description: string;
+      price: unknown; // number | Prisma.Decimal
+      currency: string;
+      coverImageUrl: string | null;
+      category: string | null;
+      viewCount: number;
+      purchaseCount: number;
+      createdAt: Date;
+      updatedAt: Date;
+      publishedAt: Date | null;
+    }
+
     return NextResponse.json({
-      documents: documents.map((doc: any) => ({
+      documents: (documents as unknown as Document[]).map((doc) => ({
         ...doc,
         price: Number(doc.price),
         isDraft: !doc.publishedAt,

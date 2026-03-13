@@ -89,16 +89,21 @@ export async function GET(
     // Télécharger le fichier chiffré depuis S3
     const encryptedBuffer = await downloadFile(purchase.document.fileUrl);
 
-    // Déchiffrer la clé du document
-    const documentKey = decryptDocumentKey(purchase.document.encryptionKey);
+    // Déchiffrer le fichier si nécessaire
+    let decryptedBuffer: Buffer;
+    if (purchase.document.encryptionKey === "none") {
+      decryptedBuffer = encryptedBuffer;
+    } else {
+      // Déchiffrer la clé du document
+      const documentKey = decryptDocumentKey(purchase.document.encryptionKey);
+      // Déchiffrer le fichier
+      decryptedBuffer = decryptFile(encryptedBuffer, documentKey);
 
-    // Déchiffrer le fichier
-    const decryptedBuffer = decryptFile(encryptedBuffer, documentKey);
-
-    // Vérifier l'intégrité
-    const isValid = verifyFileChecksum(decryptedBuffer, purchase.document.checksum);
-    if (!isValid) {
-      throw new Error("Fichier corrompu");
+      // Vérifier l'intégrité (seulement pour les fichiers chiffrés)
+      const isValid = verifyFileChecksum(decryptedBuffer, purchase.document.checksum);
+      if (!isValid) {
+        throw new Error("Fichier corrompu");
+      }
     }
 
     // Ajouter le watermark pour les PDFs

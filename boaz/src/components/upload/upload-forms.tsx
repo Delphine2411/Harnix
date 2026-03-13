@@ -1,7 +1,6 @@
 // components/UploadForm.tsx
 "use client";
 
-import { upload } from "@vercel/blob/client";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookText, Coins, FileText, ImageIcon, Tags, Upload } from "lucide-react";
@@ -16,6 +15,8 @@ interface UploadFormData {
   category: string;
   tags: string;
   language: string;
+  fileUrl: string;
+  coverImageUrl: string;
 }
 
 export default function UploadForm() {
@@ -30,10 +31,10 @@ export default function UploadForm() {
     category: "",
     tags: "",
     language: "fr",
+    fileUrl: "public/file/semons.pdf",
+    coverImageUrl: "public/pdf/image.jpeg",
   });
 
-  const [file, setFile] = useState<File | null>(null);
-  const [coverImage, setCoverImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
@@ -41,27 +42,6 @@ export default function UploadForm() {
   const [descriptionCount, setDescriptionCount] = useState(0);
   const [previewCount, setPreviewCount] = useState(0);
 
-  const slugify = (str: string) => {
-    return str
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9.]/g, "-")
-      .replace(/-+/g, "-");
-  };
-
-  const uploadToBlob = async (selectedFile: File, folder: "tmp" | "covers") => {
-    const sanitizedName = slugify(selectedFile.name);
-    return upload(`documents/${folder}/${sanitizedName}`, selectedFile, {
-      access: "public",
-      handleUploadUrl: "/api/blob/upload",
-      contentType: selectedFile.type,
-      onUploadProgress: ({ percentage }) => {
-        setProgress(Math.max(5, Math.min(95, percentage)));
-      },
-    });
-  };
 
   const categories = [
     "Éducation",
@@ -91,35 +71,7 @@ export default function UploadForm() {
     formData.description.trim().length >= 10 &&
     formData.preview.trim().length >= 50 &&
     formData.price > 0 &&
-    !!file;
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-
-      // Vérifier le type de fichier
-      const allowedTypes = ["application/pdf", "application/epub+zip"];
-      if (!allowedTypes.includes(selectedFile.type)) {
-        setError("Format de fichier non supporté. Utilisez PDF ou EPUB.");
-        return;
-      }
-
-      // Vérifier la taille (50 MB max)
-      if (selectedFile.size > 50 * 1024 * 1024) {
-        setError("Le fichier est trop volumineux (max 50 MB)");
-        return;
-      }
-
-      setFile(selectedFile);
-      setError("");
-    }
-  };
-
-  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setCoverImage(e.target.files[0]);
-    }
-  };
+    formData.fileUrl.trim().length > 0;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -127,8 +79,8 @@ export default function UploadForm() {
     const action = (submitter?.value as "draft" | "publish" | undefined) ?? "publish";
     setSubmitAction(action);
 
-    if (!file) {
-      setError("Veuillez sélectionner un fichier");
+    if (!formData.fileUrl) {
+      setError("Veuillez renseigner le lien du document PDF");
       return;
     }
 
@@ -146,57 +98,22 @@ export default function UploadForm() {
       // Simuler la progression
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 10, 90));
-      }, 500);
+      }, 300);
 
-      let response: Response;
-      const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-
-      try {
-        // En prod on utilise le client-side upload pour économiser la bande passante du serveur
-        // Mais en local, cela cause des erreurs CORS avec Vercel Blob, donc on utilise le fallback direct
-        if (isDev) {
-          throw new Error("Local environment: skipping client-side blob upload");
-        }
-
-        const uploadedDocument = await uploadToBlob(file, "tmp");
-        const uploadedCover = coverImage ? await uploadToBlob(coverImage, "covers") : null;
-
-        response = await fetch("/api/documents/upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...metadata,
-            fileUrl: uploadedDocument.url,
-            fileName: file.name,
-            fileSize: file.size,
-            fileType: file.type,
-            coverImageUrl: uploadedCover?.url,
-          }),
-        });
-      } catch (uploadError) {
-        console.log("Using direct fallback upload...", uploadError);
-        const formDataToSend = new FormData();
-        formDataToSend.append("file", file);
-        formDataToSend.append("metadata", JSON.stringify(metadata));
-
-        if (coverImage) {
-          formDataToSend.append("coverImage", coverImage);
-        }
-
-        response = await fetch("/api/documents/upload", {
-          method: "POST",
-          body: formDataToSend,
-        });
-      }
+      const response = await fetch("/api/documents/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(metadata),
+      });
 
       clearInterval(progressInterval);
       setProgress(100);
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || errorData.message || "Erreur lors de l'upload");
+        throw new Error(errorData.error || errorData.message || "Erreur lors de la publication");
       }
 
       const data = await response.json();
@@ -225,43 +142,42 @@ export default function UploadForm() {
             Créer un document
           </h2>
           <p className="text-sm text-gray-600 mt-2">
-            Ajoutez votre fichier, complétez les métadonnées et publiez en quelques minutes.
+            Ajoutez les liens vers votre document et sa couverture, complétez les métadonnées et publiez en quelques minutes.
           </p>
         </div>
 
         <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm space-y-5">
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Upload className="w-5 h-5 text-blue-600" />
-            Fichiers
+            Liens du contenu
           </h3>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Document (PDF ou EPUB) *</label>
+            <label className="block text-sm font-medium text-gray-700">Chemin ou Lien vers le document PDF *</label>
             <input
-              type="file"
-              accept=".pdf,.epub"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border file:border-blue-200 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              type="text"
+              value={formData.fileUrl}
+              onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
+              placeholder="/content/mon-guide.pdf ou https://..."
             />
-            <p className="text-xs text-gray-500">Formats autorisés: PDF, EPUB. Taille max: 50 MB.</p>
-            {file && (
-              <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-                {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-              </p>
-            )}
+            <p className="text-xs text-gray-500">
+              Chemin relatif à la racine du projet ou URL directe.
+            </p>
           </div>
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-gray-500" />
-              Image de couverture (optionnel)
+              Chemin ou Lien de l&apos;image de couverture
             </label>
             <input
-              type="file"
-              accept="image/*"
-              onChange={handleCoverImageChange}
-              className="block w-full text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border file:border-gray-200 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
+              type="text"
+              value={formData.coverImageUrl}
+              onChange={(e) => setFormData({ ...formData, coverImageUrl: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="/public/covers/guide.jpg ou https://..."
             />
           </div>
         </section>
@@ -474,7 +390,7 @@ export default function UploadForm() {
             <button
               type="submit"
               value="draft"
-              disabled={loading || !file}
+              disabled={loading || !formData.fileUrl}
               className="w-full bg-white text-gray-900 py-3 px-4 rounded-xl border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors"
             >
               {loading && submitAction === "draft" ? "Enregistrement..." : "Enregistrer en brouillon"}

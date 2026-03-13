@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Calendar,
 } from "lucide-react";
+import { resolveStaticAssetUrl } from "@/src/lib/utils";
 
 interface Stats {
   overview: {
@@ -236,7 +237,7 @@ export default function DashboardStats() {
                 >
                   {doc.coverImageUrl && (
                     <Image
-                      src={doc.coverImageUrl}
+                      src={resolveStaticAssetUrl(doc.coverImageUrl) || ""}
                       alt={doc.title}
                       width={64}
                       height={80}

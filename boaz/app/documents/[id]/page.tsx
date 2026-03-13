@@ -7,6 +7,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
+import { resolveStaticAssetUrl } from "@/src/lib/utils";
+
 export default async function DocumentDetailPage({
   params,
 }: {
@@ -43,6 +45,8 @@ export default async function DocumentDetailPage({
     });
   }
 
+  const displayCoverUrl = resolveStaticAssetUrl(document.coverImageUrl);
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
@@ -50,10 +54,10 @@ export default async function DocumentDetailPage({
           {/* Informations du document */}
           <div className="md:col-span-2">
             <div className="bg-white rounded-lg shadow-md p-6">
-              {document.coverImageUrl && (
+              {displayCoverUrl && (
                 <div className="relative w-full h-64 mb-6">
                   <Image
-                    src={document.coverImageUrl}
+                    src={displayCoverUrl}
                     alt={document.title}
                     fill
                     className="object-cover rounded-lg"

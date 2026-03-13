@@ -1,16 +1,12 @@
-// src/lib/storage.ts - Gestion du stockage local en dev et Vercel Blob en prod
+// src/lib/storage.ts - Gestion du stockage local
 import fs from "fs/promises";
 import path from "path";
 import { existsSync, mkdirSync } from "fs";
 import crypto from "crypto";
-import { del, put } from "@vercel/blob";
 
 const API_PREFIX = "/api/documents/download/";
 const STORAGE_PATH = process.env.STORAGE_PATH || path.join(process.cwd(), "storage/uploads");
-const canUseLocalStorage =
-  process.env.NODE_ENV !== "production" || Boolean(process.env.STORAGE_PATH);
-const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
-const hasBlobConfig = Boolean(blobToken);
+const canUseLocalStorage = true; // Toujours utiliser le stockage local désormais
 
 // S'assurer que le dossier existe
 if (canUseLocalStorage && !existsSync(STORAGE_PATH)) {
@@ -44,64 +40,59 @@ export async function uploadEncryptedFile(
   fileName: string
 ): Promise<string> {
   const fileId = buildStoredFileName(fileName);
+  const filePath = path.join(STORAGE_PATH, fileId);
 
-  // En développement, on privilégie le stockage local si STORAGE_PATH est défini
-  const isDev = process.env.NODE_ENV !== "production";
-
-  if (isDev && canUseLocalStorage) {
-    const filePath = path.join(STORAGE_PATH, fileId);
-    await fs.writeFile(filePath, fileBuffer);
-    return `${API_PREFIX}${encodeURIComponent(fileId)}`;
-  }
-
-  if (hasBlobConfig) {
-    const blob = await put(`documents/${fileId}`, fileBuffer, {
-      access: "public",
-      token: blobToken,
-      addRandomSuffix: false,
-      contentType: "application/octet-stream",
-    });
-
-    return blob.url;
-  } else if (canUseLocalStorage) {
-    const filePath = path.join(STORAGE_PATH, fileId);
-    await fs.writeFile(filePath, fileBuffer);
-  } else {
-    throw new Error(
-      "Storage is not configured for production. Set BLOB_READ_WRITE_TOKEN or define STORAGE_PATH on a writable persistent volume."
-    );
-  }
+  await fs.writeFile(filePath, fileBuffer);
 
   // On retourne l'URL de l'API qui permet de télécharger le fichier
   return `${API_PREFIX}${encodeURIComponent(fileId)}`;
 }
 
 /**
- * Télécharge un fichier depuis le stockage local
+ * Télécharge un fichier depuis le stockage local (uploads), une URL externe ou le dossier du projet
  */
 export async function downloadFile(fileIdentifier: string): Promise<Buffer> {
-  const fileId = getStorageIdentifier(fileIdentifier);
-
-  if (fileId.startsWith("http://") || fileId.startsWith("https://")) {
-    const response = await fetch(fileId, {
-      cache: "no-store",
-    });
-
+  // 1. URLs Externes
+  if (fileIdentifier.startsWith("http://") || fileIdentifier.startsWith("https://")) {
+    const response = await fetch(fileIdentifier);
     if (!response.ok) {
-      throw new Error("Fichier introuvable");
+      throw new Error(`Erreur lors du téléchargement externe : ${response.statusText}`);
     }
-
-    return Buffer.from(await response.arrayBuffer());
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
   }
 
-  if (!canUseLocalStorage) {
-    throw new Error("Storage is not configured for production.");
+  // 2. Fichiers statiques du projet (ex: content/mon-doc.pdf)
+  // On décode l'identifiant pour gérer les caractères spéciaux
+  const decodedId = decodeURIComponent(fileIdentifier);
+  const projectRootPath = path.join(process.cwd(), decodedId);
+
+  try {
+    const stats = await fs.stat(projectRootPath);
+    if (stats.isFile()) {
+      return await fs.readFile(projectRootPath);
+    }
+  } catch {
+    // Si échec, on essaie de lister le répertoire pour voir s'il y a des espaces en trop à la fin
+    try {
+      const dir = path.dirname(projectRootPath);
+      const base = path.basename(projectRootPath);
+      const files = await fs.readdir(dir);
+      const match = files.find(f => f.trim() === base.trim());
+      if (match) {
+        const matchPath = path.join(dir, match);
+        return await fs.readFile(matchPath);
+      }
+    } catch {
+      // Ignorer l'erreur de recherche approfondie
+    }
   }
 
+  // 3. Stockage des uploads (système par défaut)
+  const fileId = getStorageIdentifier(decodedId);
   const filePath = path.join(STORAGE_PATH, fileId);
 
   if (!existsSync(filePath)) {
-    console.error(`Fichier introuvable au chemin : ${filePath}`);
     throw new Error("Fichier introuvable");
   }
 
@@ -126,18 +117,6 @@ export async function generatePresignedUrl(
  */
 export async function deleteFile(fileIdentifier: string): Promise<void> {
   const fileId = getStorageIdentifier(fileIdentifier);
-
-  if (fileId.startsWith("http://") || fileId.startsWith("https://")) {
-    await del(fileId, {
-      token: blobToken,
-    });
-    return;
-  }
-
-  if (!canUseLocalStorage) {
-    throw new Error("Storage is not configured for production.");
-  }
-
   const filePath = path.join(STORAGE_PATH, fileId);
 
   if (existsSync(filePath)) {

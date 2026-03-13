@@ -5,6 +5,7 @@ import { authOptions } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/db";
 import { decryptDocumentKey } from "@/src/lib/encryption";
 import { z } from "zod";
+import { resolveStaticAssetUrl } from "@/src/lib/utils";
 
 const validateSchema = z.object({
   purchaseToken: z.string(),
@@ -13,7 +14,7 @@ const validateSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
@@ -63,8 +64,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Déchiffrer la clé et la renvoyer (seulement pour la lecture en ligne)
-    const documentKey = decryptDocumentKey(purchase.document.encryptionKey);
+    // Déchiffrer la clé si le document est chiffré
+    const documentKey = purchase.document.encryptionKey === "none"
+      ? "none"
+      : decryptDocumentKey(purchase.document.encryptionKey);
 
     // Logger l'accès
     await prisma.accessLog.create({
@@ -84,7 +87,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       valid: true,
       decryptionKey: documentKey,
-      documentUrl: purchase.document.fileUrl,
+      documentUrl: resolveStaticAssetUrl(purchase.document.fileUrl),
       document: {
         title: purchase.document.title,
         author: purchase.document.author,

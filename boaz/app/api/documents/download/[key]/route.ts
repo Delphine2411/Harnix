@@ -9,13 +9,6 @@ export async function GET(
     try {
         const { key } = await params;
 
-        // Pour les images de couverture (qui commencent généralement par 'documents/')
-        // Note: Dans ma nouvelle implémentation storage.ts, j'ai simplifié la clé.
-
-        // On pourrait ajouter des vérifications de session ici si nécessaire
-        // Mais pour l'instant on va servir le fichier car il est chiffré de toute façon
-        // (sauf l'image de couverture)
-
         const fileBuffer = await downloadFile(key);
 
         // Essayer de deviner le Content-Type à partir de l'extension

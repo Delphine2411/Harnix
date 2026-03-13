@@ -89,7 +89,14 @@ export default function DocumentReader({ purchaseToken }: DocumentReaderProps) {
       if (cached) {
         console.log("Chargement depuis le cache local...");
         setDocumentInfo(cached.document);
-        const decryptedBuffer = await decryptFileClient(cached.encryptedData, cached.decryptionKey);
+
+        let decryptedBuffer: ArrayBuffer;
+        if (cached.decryptionKey === "none") {
+          decryptedBuffer = cached.encryptedData;
+        } else {
+          decryptedBuffer = await decryptFileClient(cached.encryptedData, cached.decryptionKey);
+        }
+
         setPdfData(new Uint8Array(decryptedBuffer));
         setLoading(false);
         // On continue quand même pour vérifier si une mise à jour est nécessaire ou valider le token si online
@@ -146,9 +153,15 @@ export default function DocumentReader({ purchaseToken }: DocumentReaderProps) {
       // Mettre en cache pour une utilisation ultérieure hors ligne
       await saveToCache(purchaseToken, { encryptedData, decryptionKey, document });
 
-      // Déchiffrer le fichier côté client
-      const decryptedBuffer = await decryptFileClient(encryptedData, decryptionKey);
-      const decryptedData = new Uint8Array(decryptedBuffer);
+      // Déchiffrer le fichier côté client si nécessaire
+      let decryptedData: Uint8Array;
+      if (decryptionKey === "none") {
+        console.log("Document non chiffré, utilisation directe...");
+        decryptedData = new Uint8Array(encryptedData);
+      } else {
+        const decryptedBuffer = await decryptFileClient(encryptedData, decryptionKey);
+        decryptedData = new Uint8Array(decryptedBuffer);
+      }
 
       // LOGS DE DEBUG
       const header = String.fromCharCode(...decryptedData.slice(0, 5));
